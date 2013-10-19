@@ -13,7 +13,6 @@
 from numpy import *
 
 def Jacobian(x):
-    #return array([.4*x[0],2*x[1]])
     return array([x[0], 0.4*x[1], 1.2*x[2]])
 
 def steepest(x0):
@@ -29,7 +28,8 @@ def steepest(x0):
         xOld = x
         x = x + alpha*p
         Delta = sum((x-xOld)**2)
-        print x
+        print 'epoch', i, ':'
+        print x, '\n'
         i += 1
 
 x0 = array([-2,2,-2])

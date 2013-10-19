@@ -12,11 +12,9 @@
 from numpy import *
 
 def Jacobian(x):
-    #return array([.4*x[0],2*x[1]])
     return array([x[0], 0.4*x[1], 1.2*x[2]])
 
 def Hessian(x):
-    #return array([[.2,0],[0,1]])
     return array([[1,0,0],[0,0.4,0],[0,0,1.2]])
 
 def Newton(x0):

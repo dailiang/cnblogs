@@ -1,7 +1,7 @@
-# 使用导数的最优化方法简单总结 #
+#机器学习中导数最优化方法(基础篇) #
 
 ## 1. 前言 ##
-熟悉机器学习的童鞋都知道，优化方法是其中一个非常重要的话题，最常见的情形就是利用目标函数的导数通过多次迭代来求解无约束最优化问题。实现简单，coding 方便，是训练模型的必备利器之一。这篇博客主要总结一下使用导数的最优化方法，梳理梳理相关的数学知识，本人也是一边写一边学，如有问题，欢迎指正，共同学习，一起进步。
+熟悉机器学习的童鞋都知道，优化方法是其中一个非常重要的话题，最常见的情形就是利用目标函数的导数通过多次迭代来求解无约束最优化问题。实现简单，coding 方便，是训练模型的必备利器之一。这篇博客主要总结一下使用导数的最优化方法的几个基本方法，梳理梳理相关的数学知识，本人也是一边写一边学，如有问题，欢迎指正，共同学习，一起进步。
 
 ## 2. 几个数学概念 ##
 ### 1) 梯度（一阶导数）###
@@ -78,7 +78,7 @@ Steepest gradient 方法得到的是局部最优解，如果目标函数是一�
 牛顿法主要存在的问题是：
 
 1. Hesse 矩阵不可逆时无法计算 
-2. 矩阵的逆计算复杂为 n 的立方，当问题规模比较大时，计算量很大
+2. 矩阵的逆计算复杂为 n 的立方，当问题规模比较大时，计算量很大，解决的办法是采用拟牛顿法如 BFGS, L-BFGS, DFP, Broyden's Algorithm 进行近似。
 3. 如果初始值离局部极小值太远，Taylor 展开并不能对原函数进行良好的近似
 
 ###3) Levenberg–Marquardt Algorithm###
@@ -145,6 +145,39 @@ LMA 最早提出是用来解决最小二乘法曲线拟合的优化问题的，�
 
 共轭梯度法也是优化模型经常经常要用到的一个方法，背后的数学公式和原理稍微复杂一些，光这一个优化方法就可以写一篇很长的博文了，所以这里并不打算详细讲解每一步的推导过程，只简单写一下算法的实现过程。与最速梯度下降的不同，共轭梯度的优点主要体现在选择搜索方向上。在了解共轭梯度法之前，我们首先简单了解一下共轭方向：
 
-<center><img src="http://upload.wikimedia.org/math/3/5/0/3505ac88ea3c05a47f3c58b7f70dab59.png" alt=""></center>
+<center><img src="http://pic002.cnblogs.com/images/2011/329939/2011102021135596.png" alt=""></center>
+
+共轭方向和马氏距离的定义有类似之处，他们都考虑了全局的数据分布。如上图，d(1) 方向与二次函数的等值线相切，d(1) 的共轭方向 d(2) 则指向椭圆的中心。所以对于二维的二次函数，如果在两个共轭方向上进行一维搜索，经过两次迭代必然达到最小点。前面我们说过，等值线椭圆的形状由 Hesse 矩阵决定，那么，上图的两个方向关于 Hessen 矩阵正交，共轭方向的定义如下：
+
+<center><img src="http://latex.codecogs.com/gif.latex?\mathbf{d}^{(1)T}\mathbf{Ad}^{(2)} = 0}" alt=""></center>
+
+如果椭圆是一个正圆， Hessen 矩阵是一个单位矩阵，上面等价于欧几里得空间中的正交。
+
+在优化过程中，如果我们确定了移动方向（GD：垂直于等值线，CG：共轭方向），然后在该方向上搜索极小值点（恰好与该处的等值线相切），然后移动到最小值点，重复以上过程，那么 Gradient Descent 和 Conjugate gradient descent 的优化过程可以用下图的**绿线**与**红线**表示：
+
+<center><img src="http://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Conjugate_gradient_illustration.svg/220px-Conjugate_gradient_illustration.svg.png" alt=""></center>
+
+讲了这么多，共轭梯度算法究竟是如何算的呢？
+
+1. 给定一个出发点 x0 和一个停止参数 e, 第一次移动方向为**最速下降方向**: <img src="http://latex.codecogs.com/gif.latex?\mathbf{p}_0 = -\nabla f(\mathbf{x})}" alt="">
+2. <img src="http://latex.codecogs.com/gif.latex?\mathbf{p}_{new} = \mathbf{p}_0" alt=""> 
+3. while  <img src="http://latex.codecogs.com/gif.latex?\mathbf{p}_{new} > e^2\mathbf{p}_0" alt=""> :
+    - 用 Newton-Raphson 迭代计算移动距离，以便在该搜索方向移动到极小，公式就不写了，具体思路就是利用一阶梯度的信息向极小值点跳跃搜索
+    - 移动当前的优化解 x： <img src="http://latex.codecogs.com/gif.latex?\mathbf{x}_{new} = \mathbf{x} + \alpha _k\mathbf{p}" alt=""> 
+    - 用 Gram-Schmidt 方法构造下一个共轭方向，即 <img src="http://latex.codecogs.com/gif.latex?\mathbf{p}_{new} = \nabla f(\mathbf{x}_{new}) + \beta _{k+1}\mathbf{p}" alt=""> ,  按照 <img src="http://latex.codecogs.com/gif.latex?\beta" alt=""> 的确定公式又可以分为 FR 方法和 PR 和 HS 等。
+
+在很多的资料中，介绍共轭梯度法都举了一个求线性方程组 Ax = b 近似解的例子，实际上就相当于这里所说的 <img src="http://latex.codecogs.com/gif.latex?\min f(\mathbf{x}) = \frac{1}{2}||\mathbf{Ax-b}||^2" alt=""> 
+
+还是用最开始的目标函数 <img src="http://latex.codecogs.com/gif.latex?f(\mathbf{x})=0.5x_1^2 + 0.2x_2^2 + 0.6x_3^2" alt=""> 来编写共轭梯度法的优化代码：
+
+<code> CG.py </code>
 
 
+
+
+---
+参考资料：
+
+[1] Machine Learning: An Algorithmic Perspective, chapter 11    
+[2] 最优化理论与算法（第2版），陈宝林    
+[3] wikipedia
