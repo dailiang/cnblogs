@@ -1,0 +1,150 @@
+# 使用导数的最优化方法简单总结 #
+
+## 1. 前言 ##
+熟悉机器学习的童鞋都知道，优化方法是其中一个非常重要的话题，最常见的情形就是利用目标函数的导数通过多次迭代来求解无约束最优化问题。实现简单，coding 方便，是训练模型的必备利器之一。这篇博客主要总结一下使用导数的最优化方法，梳理梳理相关的数学知识，本人也是一边写一边学，如有问题，欢迎指正，共同学习，一起进步。
+
+## 2. 几个数学概念 ##
+### 1) 梯度（一阶导数）###
+考虑一座在 (x1, x2) 点高度是 f(x1, x2) 的山。那么，某一点的梯度方向是在该点坡度最陡的方向，而梯度的大小告诉我们坡度到底有多陡。注意，梯度也可以告诉我们不在最快变化方向的其他方向的变化速度（二维情况下，按照梯度方向倾斜的圆在平面上投影成一个椭圆）。对于一个含有 n 个变量的标量函数，即函数输入一个 n 维 的向量，输出一个数值，梯度可以定义为：
+
+<center><img src="http://upload.wikimedia.org/math/3/8/9/3897cde8f174309a9fc398795411769d.png" /></center>
+
+### 2) Hesse 矩阵（二阶导数） ###
+Hesse 矩阵常被应用于**牛顿法解决的大规模优化问题**(后面会介绍)，主要形式如下：
+
+<center><img src="http://upload.wikimedia.org/math/7/5/d/75dc4e662a991741dc6d0314b6c8a7d2.png" /></center>
+
+当 f(x) 为二次函数时，梯度以及 Hesse 矩阵很容易求得。二次函数可以写成下列形式：
+
+<center><img src="http://latex.codecogs.com/gif.latex?f(x)=\frac{1}{2}x^TAx + b^Tx+c" alt=""></center>
+
+其中 A 是 n 阶对称矩阵，b 是 n 维列向量， c 是常数。f(x) 梯度是 Ax+b, Hesse 矩阵等于 A。
+
+### 3) Jacobi 矩阵 ###
+Jacobi 矩阵实际上是向量值函数的梯度矩阵，假设F:Rn→Rm 是一个从n维欧氏空间转换到m维欧氏空间的函数。这个函数由m个实函数组成:
+<img src="http://latex.codecogs.com/gif.latex? y(x) = [y_1(x_1, ..., x_n),\cdots , y_m(x_1, ...,x_n)]" />。这些函数的偏导数(如果存在)可以组成一个m行n列的矩阵(m by n)，这就是所谓的雅可比矩阵：
+<center><img src="http://upload.wikimedia.org/math/8/b/b/8bbb6b0c9c437a682aa7b4ecd1b6d0f2.png" /></center>
+
+总结一下,
+
+**a)** 如果 f(x) 是一个标量函数，那么雅克比矩阵是一个向量，等于 f(x) 的梯度， Hesse 矩阵是一个二维矩阵。如果 f(x) 是一个向量值函数，那么Jacobi 矩阵是一个二维矩阵，Hesse 矩阵是一个三维矩阵。
+
+**b)** 梯度是 Jacobian 矩阵的特例，梯度的 jacobian 矩阵就是 Hesse 矩阵（一阶偏导与二阶偏导的关系）。
+
+## 3. 优化方法 ##
+###1) Gradient Descent ###
+Gradient descent 又叫 steepest descent，是利用一阶的梯度信息找到函数局部最优解的一种方法，也是机器学习里面最简单最常用的一种优化方法。Gradient descent 是 line search 方法中的一种，主要迭代公式如下：
+
+<center><img src="http://latex.codecogs.com/gif.latex?x_{k+1} = x_k + \alpha _k\mathbf{p}_k" alt=""></center>
+
+其中，<img src="http://latex.codecogs.com/gif.latex?\mathbf{p}_k" alt="">是第 k 次迭代我们选择移动的方向，在 steepest descent 中，移动的方向设定为梯度的负方向， <img src="http://latex.codecogs.com/gif.latex?\alpha _k" alt="">是第 k 次迭代用 line search 方法选择移动的距离，每次移动的距离系数可以相同，也可以不同，有时候我们也叫学习率（learning rate）。在数学上，移动的距离可以通过 line search 令导数为零找到该方向上的最小值，但是在实际编程的过程中，这样计算的代价太大，我们一般可以将它设定位一个常量。考虑一个包含三个变量的函数 <img src="http://latex.codecogs.com/gif.latex?f(\mathbf{x})=0.5x_1^2+0.2x_2^2+0.6x_3^2" alt="">，计算梯度得到 <img src="http://latex.codecogs.com/gif.latex?\nabla f(\mathbf{x})=(x_1,0.4x_2,1.2x_3)" alt="">。设定 learning rate = 1，算法代码如下：
+
+<code> steepest.py </code>
+
+Steepest gradient 方法得到的是局部最优解，如果目标函数是一个凸优化问题，那么局部最优解就是全局最优解，理想的优化效果如下图，值得注意一点的是，每一次迭代的移动方向都与出发点的等高线垂直：
+
+<center><img src="http://upload.wikimedia.org/wikipedia/commons/thumb/f/ff/Gradient_descent.svg/350px-Gradient_descent.svg.png" /></center>
+
+需要指出的是，在某些情况下，最速下降法存在**锯齿现象**（ zig-zagging）将会导致收敛速度变慢:
+
+<center><img src="http://trond.hjorteland.com/thesis/img208.gif" /></center>
+
+粗略来讲，在二次函数中，椭球面的形状受 hesse 矩阵的条件数影响，长轴与短轴对应矩阵的最小特征值和最大特征值的方向，其大小与特征值的平方根成反比，最大特征值与最小特征值相差越大，椭球面越扁，那么优化路径需要走很大的弯路，计算效率很低。
+
+###2) Newton's method###
+
+在最速下降法中，我们看到，该方法主要利用的是目标函数的局部性质，具有一定的“盲目性”。牛顿法则是利用局部的一阶和二阶偏导信息，推测整个目标函数的形状，进而可以求得出近似函数的全局最小值，然后将当前的最小值设定近似函数的最小值。相比最速下降法，牛顿法带有一定对全局的预测性，收敛性质也更优良。牛顿法的主要推导过程如下：
+
+第一步，利用 Taylor 级数求得原目标函数的二阶近似：
+
+<center><img src="http://latex.codecogs.com/gif.latex?f(\mathbf{x})\approx \phi (\mathbf{x})=f(\mathbf{x}^{(k)})+\nabla f(\mathbf{x}^{(k)})+\frac{1}{2}(\mathbf{x}-\mathbf{x}^{(k)})^T\nabla ^2f(\mathbf{x}^{(k)})(\mathbf{x}-\mathbf{x}^{(k)})" alt=""></center>
+
+第二步，令一阶偏导为 0 ，求近似函数的最小值：
+
+<center><img src="http://latex.codecogs.com/gif.latex?\mathbf{p}_k = -(\nabla ^2f(\mathbf{x_k}))^{-1}\nabla f(\mathbf{x_k})" alt=""></center>
+
+即：
+
+<center><img src="http://latex.codecogs.com/gif.latex?\mathbf{p}_k = -Hesse^{-1}Jacobi" alt=""></center>
+
+第三步，将当前的最小值设定近似函数的最小值。
+
+与 **1)** 中优化问题相同，牛顿法的代码如下：
+
+<code> Newton.py </code>
+
+上面例子中由于目标函数是二次凸函数，Taylor 展开等于原函数，所以能一次就求出最优解。
+
+牛顿法主要存在的问题是：
+
+1. Hesse 矩阵不可逆时无法计算 
+2. 矩阵的逆计算复杂为 n 的立方，当问题规模比较大时，计算量很大
+3. 如果初始值离局部极小值太远，Taylor 展开并不能对原函数进行良好的近似
+
+###3) Levenberg–Marquardt Algorithm###
+
+Levenberg–Marquardt algorithm 能结合以上两种优化方法的优点，并对两者的不足做出改进。与 line search 的方法不同，LMA 属于一种“信赖域法”(trust region)，牛顿法实际上也可以看做一种信赖域法，即利用局部信息对函数进行建模近似，求取局部最小值。所谓的信赖域法，就是从初始点开始，先假设一个可以信赖的最大位移 s（牛顿法里面 s 为无穷大），然后在以当前点为中心，以 s 为半径的区域内，通过寻找目标函数的一个近似函数（二次的）的最优点，来求解得到真正的位移。在得到了位移之后，再计算目标函数值，如果其使目标函数值的下降满足了一定条件，那么就说明这个位移是可靠的，则继续按此规则迭代计算下去；如果其不能使目标函数值的下降满足一定的条件，则应减小信赖域的范围，再重新求解。
+
+LMA 最早提出是用来解决最小二乘法曲线拟合的优化问题的，对于随机初始化的已知参数 beta， 求得的目标值为：
+
+<center><img src="http://upload.wikimedia.org/math/d/a/a/daa7c6ab4351902d897ebffe919e84a1.png" alt=""></center>
+
+对拟合曲线函数进行一阶 Jacobi 矩阵的近似：
+
+<center><img src="http://upload.wikimedia.org/math/f/7/b/f7b732e73d075ff6d6f89622a2bc74f5.png" alt=""></center>
+
+进而推测出 S 函数的周边信息：
+
+<center><img src="http://upload.wikimedia.org/math/e/6/2/e62c1c183de6e455f20a6686a11063db.png" alt=""></center>
+
+位移是多少时得到 S 函数的最小值呢？通过几何的概念，当残差 <img src="http://latex.codecogs.com/gif.latex?\mathbf{y}-f(\beta)-J\delta" alt=""> 垂直于 J 矩阵的 span 空间时， S 取得最小（至于为什么？请参考之前[博客](http://www.cnblogs.com/daniel-D/p/3204508.html)的最后一部分)
+
+<center><img src="http://upload.wikimedia.org/math/d/3/a/d3a53790a98a976ea5419852596ac10f.png" alt=""></center>
+
+我们将这个公式略加修改，加入阻尼系数得到：
+
+<center><img src="http://upload.wikimedia.org/math/5/5/f/55f3b2ec29fd3ea2373a51584e139f31.png" alt=""></center>
+
+就是莱文贝格－马夸特方法。这种方法只计算了一阶偏导，而且不是目标函数的 Jacobia 矩阵，而是拟合函数的 Jacobia 矩阵。当
+<img src="http://latex.codecogs.com/gif.latex?\lambda" alt=""> 大的时候可信域小，这种算法会接近最速下降法，
+<img src="http://latex.codecogs.com/gif.latex?\lambda" alt=""> 小的时候可信域大，会接近高斯-牛顿方法。
+
+算法过程如下：
+
+1. 给定一个初识值 x0
+2. 当 <img src="http://latex.codecogs.com/gif.latex?\mathbf{J}^T[\mathbf{y-f(\beta)}] > tolerance" alt=""> 并且没有到达最大迭代次数时
+3. 重复执行:
+    * 算出移动向量<img src="http://latex.codecogs.com/gif.latex?\delta" alt="">    
+    * 计算更新值：<img src="http://latex.codecogs.com/gif.latex?\mathbf{x_{new}}=\mathbf{x}+\delta" alt="">    
+    * 计算目标函数真实减少量与预测减少量的比率 <img src="http://latex.codecogs.com/gif.latex?\rho" alt="">
+    * if <img src="http://latex.codecogs.com/gif.latex?0 < \rho < 0.25" alt="">，接受更新值    
+    * else if <img src="http://latex.codecogs.com/gif.latex?\rho > 0.25" alt="">，说明近似效果很好，接受更新值，扩大可信域（即减小阻尼系数）    
+    * else: 目标函数在变大，拒绝更新值，减小可信域（即增加阻尼系数）
+4. 直到达到最大迭代次数
+
+维基百科在介绍 [Gradient descent](http://en.wikipedia.org/wiki/Gradient_descent) 时用包含了细长峡谷的 Rosenbrock function 
+
+<center><img src="http://upload.wikimedia.org/math/3/5/0/3505ac88ea3c05a47f3c58b7f70dab59.png" alt=""></center>
+
+展示了 zig-zagging 锯齿现象：
+
+<center><img src="http://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Banana-SteepDesc.gif/400px-Banana-SteepDesc.gif" alt=""></center>
+
+用 LMA 优化效率如何。套用到我们之前 LMA 公式中，有：
+<center><img src="http://latex.codecogs.com/gif.latex?{ y }\quad =\quad 0\\ f(\beta )\quad =\quad (10(x_{ 2 }-x_{ 1 }^{ 2 }),\quad 1-x_{ 1 })^{ T }\\ J\quad =\quad \begin{pmatrix} -20{ x }_{ 1 } & 10 \\ -1 & 0 \end{pmatrix}" alt=""></center>
+
+代码如下：
+
+<code> LevenbergMarquardt.py </code>
+
+大概 5 次迭代就可以得到最优解 (1, 1).
+
+[Levenberg–Marquardt algorithm](http://en.wikipedia.org/wiki/Levenberg%E2%80%93Marquardt_algorithm) 对局部极小值很敏感，维基百科举了一个二乘法曲线拟合的例子，当使用不同的初始值时，得到的结果差距很大，我这里也有 python 代码，就不细说了。
+
+###4) Conjugate Gradients###
+
+共轭梯度法也是优化模型经常经常要用到的一个方法，背后的数学公式和原理稍微复杂一些，光这一个优化方法就可以写一篇很长的博文了，所以这里并不打算详细讲解每一步的推导过程，只简单写一下算法的实现过程。与最速梯度下降的不同，共轭梯度的优点主要体现在选择搜索方向上。在了解共轭梯度法之前，我们首先简单了解一下共轭方向：
+
+<center><img src="http://upload.wikimedia.org/math/3/5/0/3505ac88ea3c05a47f3c58b7f70dab59.png" alt=""></center>
+
+
