@@ -1,5 +1,3 @@
-#<center><img src="http://latex.codecogs.com/gif.latex?" alt=""></center>
-
 # 从随机过程到马尔科夫链-蒙特卡洛方法 #
 
 ## 1. Introduction ##
@@ -152,4 +150,12 @@ matlab 代码如下：
         end
     end
 
-MH 算法中的 proposal distribution q(x) 也是需要小心确定的，详细知识可以查阅这篇介绍论文 (An introduction to MCMC for machine learning, Andrieu, Christophe). 
+MH 算法中的 proposal distribution q(x) 也是需要小心确定的，详细知识可以查阅这篇介绍论文 (An introduction to MCMC for machine learning, Andrieu, Christophe). 可以看到，这个算法和模拟退火算法的思想是非常相似的，但是在模拟退火算法过程中，随着时间的增加，接受值大的区域的概率越来越高，直到找到最高点。
+
+### 3.3 Gibbs Sampling ###
+
+Gibbs Sampling 实际上是 MH 算法的一个变种。具体思路如下：假设在一定温度下一定量的分子在容器里做无规则的热运动，如何统计系统的能量呢？同样，我们用 Monte Carlo 的思想进行统计计算。我们假设所有的分子静止在某一个时刻，这是初识状态。固定其他的分子，根据分子间的作用力对其中一个分子进行移动，也就是说在该分子以一定的概率移动到领域的某一个地方，移动完了之后再静止。然后基于移动后的状态对下一个分子进行同样的移动操作...直到所有的分子移动完毕，那么现在的状态就是 Monte Carlo 采样的第二个样本。依照这样的顺序采样下去，我们对于这个系统就能计算一个统计意义上的能量了。从条件分布的角度来看，算法过程如下：
+
+<center><img src="Selection_011.png" alt=""></center>
+
+总体来讲，Gibbs Sampling 就是从条件概率中选择一个变量（分子），然后对该变量（分子）进行采样。当所有变量采样完毕之后，就得到了后面的一个状态，从而完成了对系统配置的采样。
